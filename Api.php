@@ -7,7 +7,7 @@ class ExpediaApiClient {
     private $request;
 
     // This function is responsible for our HTTP requests
-    public function sendRequest($headers,$url) {
+    public function sendRequest($headers, $url) {
         $soap_do = curl_init();
         curl_setopt($soap_do, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($soap_do, CURLOPT_URL, $url);
