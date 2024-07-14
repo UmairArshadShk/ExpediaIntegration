@@ -6,15 +6,12 @@ use Fenix\Core\Database;
 use Fenix\Core\Session;
 
 // Used repository pattern to centerlized our database code
-class ExpediaRepository
-{
-    
+class ExpediaRepository {
     protected Database $db;
     protected Database $db_master;
     protected Session $session;
 
-    public function __construct(Database $db, Database $db_master, Session $session )
-    {
+    public function __construct(Database $db, Database $db_master, Session $session) {
         $this->db = $db;
         $this->db_master = $db_master;
         $this->session = $session;
@@ -50,8 +47,7 @@ class ExpediaRepository
         $this->db_master->execute();
     }
     
-    public function fetchApiSettingsCount($version, $country)
-    {
+    public function fetchApiSettingsCount($version, $country) {
         global $db_master;
         $sql = "SELECT * FROM settingsAPI WHERE name='EXPEDIA-$version' AND extra2=:country";
         $db_master->query($sql);

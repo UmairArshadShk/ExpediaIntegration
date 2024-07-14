@@ -12,11 +12,10 @@ use Fenix\Library\Objects\TripSector;
 use Fenix\Core\Database;
 use Fenix\Core\Session;
 
- // Handles car rental booking imports from Expedia APIs, extending base functionality from Expedia class.
- // Manages API-specific URL, headers, and data processing for car rentals, including sector and itinerary generation.
+// Handles car rental booking imports from Expedia APIs, extending base functionality from Expedia class.
+// Manages API-specific URL, headers, and data processing for car rentals, including sector and itinerary generation.
  
-class Cars extends Expedia
-{
+class Cars extends Expedia {
     private $sectorInsertTemplate;
     protected string $url = self::URL . 'cars/bookings/';
     protected string $acceptString = 'Accept: application/vnd.exp-car.v3+json';
@@ -35,16 +34,14 @@ class Cars extends Expedia
     protected array $itineraries = [];
 
 
-    public function __construct($config, Database $db, Database $db_master, Session $session)
-    {
+    public function __construct($config, Database $db, Database $db_master, Session $session) {
         //Injecting the repository for db calls 
         $this->repository = new ExpediaRepository($db, $db_master, $session);
         $this->sectorInsertTemplate = new SectorInsertTemplate();
         parent::__construct($config, $this->repository);
     }
 
-    protected function generateSectorInformation(): void
-    {
+    protected function generateSectorInformation(): void {
         // modularized functions into smaller ones
         $this->loadData();
         $this->calculateBookingCurrencyCode();
@@ -52,8 +49,7 @@ class Cars extends Expedia
         $this->createItineraryInsertObject($tripSectorID);
     }
 
-    protected function loadData(): void
-    {
+    protected function loadData(): void {
         if ($this->debug) {
             $path = __DIR__ . '/Cars.json';
             $this->rawData = file_get_contents($path);
@@ -65,8 +61,7 @@ class Cars extends Expedia
 
 
     // Sets the booking currency code based on car rental details or session settings, and checks GST applicability.
-    protected function calculateBookingCurrencyCode(): void
-    {
+    protected function calculateBookingCurrencyCode(): void {
         $this->bookingCurrencyCode = !empty($this->carDetails['Price']['BasePrice']['Currency']) ?
             $this->carDetails['Price']['BasePrice']['Currency'] : $this->repository->getSession()->getCurrencyCode();
         $this->agencyCurrencyCode = $this->repository->getSession()->getCurrencyCode();
@@ -75,8 +70,7 @@ class Cars extends Expedia
 
 
     // Sets up and stores itinerary details for car hire, including trip specifics, dates, locations, inclusions, and notes.
-    protected function createItineraryInsertObject(int $tripSectorID): void
-    {
+    protected function createItineraryInsertObject(int $tripSectorID): void {
         $itineraryInsert = new \stdClass();
         $itineraryInsert->tripID = $this->tripID;
         $itineraryInsert->tripSectorID = $tripSectorID;
@@ -102,23 +96,19 @@ class Cars extends Expedia
         }
     }
 
-    protected function getClassType(): string
-    {
+    protected function getClassType(): string {
         return $this->vehicleDetails['CarClass'] ?? ($this->vehicleDetails['Make'] ?? '');
     }
 
-    protected function getFormattedDate(string $dateTime): string
-    {
+    protected function getFormattedDate(string $dateTime): string {
         return date('Y-m-d', strtotime($dateTime));
     }
 
-    protected function getFormattedTime(string $dateTime): string
-    {
+    protected function getFormattedTime(string $dateTime): string {
         return date("H:i:s", strtotime($dateTime));
     }
 
-    protected function getLocation(array $address): string
-    {
+    protected function getLocation(array $address): string {
         $location = '';
         if (!empty($address['Address1'])) $location .= $address['Address1'];
         if (!empty($address['City'])) $location .= ' ' . $address['City'];
@@ -128,8 +118,7 @@ class Cars extends Expedia
     }
 
     // Constructs details about the car hire, including dates and vehicle specifications like make, doors, transmission, and capacity.
-    protected function getDetails(): string
-    {
+    protected function getDetails(): string {
         $details = 'Car Hire' . PHP_EOL;
         $details .= date('Y-m-d H:i:s', strtotime($this->carDetails['PickupDetails']['DateTime'])) . ' - ' . date('Y-m-d H:i:s', strtotime($this->carDetails['DropOffDetails']['DateTime'])) . PHP_EOL;
         if (!empty($this->vehicleDetails['Make'])) $details .= 'Make: ' . $this->vehicleDetails['Make'] . PHP_EOL;
@@ -141,8 +130,7 @@ class Cars extends Expedia
     }
 
     // Gathers and formats notes from car policies into HTML, categorized by policy type.
-    protected function getNotes(array $carPolicies): string
-    {
+    protected function getNotes(array $carPolicies): string {
         $notes = '';
         foreach ($carPolicies as $row) {
             if (!empty($row['PolicyText'])) {
@@ -155,8 +143,7 @@ class Cars extends Expedia
 
     // Creates an object for inserting car hire details into the database, 
     // setting up various properties like dates, rates, and taxes.
-    protected function createSectorInsertObject(): int
-    {
+    protected function createSectorInsertObject(): int {
         // Constants
         $details = $this->createDetailsString();
         $today = date('Y-m-d H:i:s');
@@ -172,7 +159,6 @@ class Cars extends Expedia
             $this->calculateBaseRate(),
             $this->data['ItineraryNumber']
         );
-
 
         $sectorInsert->details = $details;
         $sectorInsert->ticketDate = date('Y-m-d', strtotime($this->data['BookingDateTime']));
@@ -200,23 +186,19 @@ class Cars extends Expedia
         return $tripSectorID;
     }
 
-
     // Builds a string for car hire details, showing pickup and drop-off times.
-    protected function createDetailsString(): string
-    {
+    protected function createDetailsString(): string {
         return 'Car Hire' . PHP_EOL .
             date('Y-m-d H:i:s', strtotime($this->carDetails['PickupDetails']['DateTime'])) . ' - ' .
             date('Y-m-d H:i:s', strtotime($this->carDetails['DropOffDetails']['DateTime'])) . PHP_EOL;
     }
 
-    protected function calculateNet(): int
-    {
+    protected function calculateNet(): int {
         return $this->calculateBaseRate() + $this->calculateFees();
     }
 
     // Returns the base rate in cents, using 'BaseRate' if set, or 'TotalPrice' minus fees if 'BaseRate' isn't available.
-    protected function calculateBaseRate(): int
-    {
+    protected function calculateBaseRate(): int {
         if (isset($this->carDetails['Price']['BaseRate']['Value'])) {
             return $this->carDetails['Price']['BaseRate']['Value'] * 100;
         } elseif (isset($this->carDetails['Price']['TotalPrice']['Value'])) {
@@ -226,8 +208,7 @@ class Cars extends Expedia
     }
 
     // Calculates fees in cents from 'TaxesAndFees' if set; otherwise returns 0.
-    protected function calculateFees(): int
-    {
+    protected function calculateFees(): int {
         return isset($this->carDetails['Price']['TaxesAndFees']['Value']) ? $this->carDetails['Price']['TaxesAndFees']['Value'] * 100 : 0;
     }
 }

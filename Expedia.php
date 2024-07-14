@@ -5,11 +5,9 @@ namespace Fenix\Core\Import\ThirdParty;
 use Fenix\Library\Objects\Product;
 use Fenix\Library\Objects\Supplier;
 
-
 // Abstract class defining common functionality for importing data from Expedia APIs.
 // Manages configuration settings, handles API requests, processes API responses, and logs import details.
-abstract class Expedia
-{
+abstract class Expedia {
     protected const URL = 'https://apim.expedia.com/';
     protected const ENABLE_V1 = true;
 
@@ -30,9 +28,9 @@ abstract class Expedia
     protected string $defaultEmail = '';
     protected array $emailList = [];
 
-    protected $productCode = '';
-    protected $productID = '';
-    protected $supplierCode = '';
+    protected string $productCode = '';
+    protected string $productID = '';
+    protected string $supplierCode = '';
     protected $supplierID;
     protected $passengerID;
 
@@ -49,16 +47,12 @@ abstract class Expedia
     protected array $sectors = [];
     protected array $itineraries = [];
 
-
     protected string $url = '';
     protected string $acceptString = '';
 
-
     protected $data;
 
-    public function __construct($config, ExpediaRepository $repository)
-    {
-
+    public function __construct($config, ExpediaRepository $repository) {
         $this->productID = $config['productID'] ?? null;
         $this->supplierID = $config['supplierID'] ?? null;
         $this->passengerID = $config['passengerID'] ?? null;
@@ -78,8 +72,7 @@ abstract class Expedia
     }
 
     // Handles an API request using API class with provided email, URL, itinerary ID, API version key, and version number.
-    protected function handleAPIRequest($email, $url, $itineraryID, $apiVersionKey, $version)
-    {
+    protected function handleAPIRequest($email, $url, $itineraryID, $apiVersionKey, $version) {
         $headers = [
             'Key: ' . $apiVersionKey,
             $this->acceptString,
@@ -100,10 +93,8 @@ abstract class Expedia
     // Retrieves itinerary details using the provided itinerary ID and email, handling API requests and error checking.
     public function retrieveItinerary($itineraryID, $email, bool $debugMode = false): void
     {
-
         $this->debug = $debugMode;
         $url = $this->url . $itineraryID;
-
 
         if (!$this->hasError) {
             $this->handleAPIRequest($email, $url, $itineraryID, $this->apiKeyV2, 'v2');
@@ -214,12 +205,10 @@ abstract class Expedia
         $this->setEmails();
 
         $this->emailList = array_unique($this->emailList);
-        break;
     }
 
     protected function retrieveSettings(): bool
     {
-
         $rowCount = $this->repository->getExpediaGatewaySettingsCount();
         if ($rowCount === 1) {
             return true;
@@ -236,7 +225,6 @@ abstract class Expedia
 
     protected function logImport($itineraryID, $keyVersion): void
     {
-
         $apiSettings = [
             'productID' => $this->productID,
             'supplierID' => $this->supplierID,
@@ -254,26 +242,20 @@ abstract class Expedia
         $insert->apiSettings = json_encode($apiSettings);
         $insert->keyVersion = $keyVersion;
         $this->repository->getMaseterDB()->insertObject($insert, 'logExpediaImport');
-        $this->logImportID =  $this->repository->getMaseterDB()->lastInsertId();
+        $this->logImportID = $this->repository->getMaseterDB()->lastInsertId();
     }
 
     protected function generateAuth(bool $version2 = true): string
     {
-
-        if (self::ENABLE_V1) {
-            if ($version2)
-                $authBasicString = $this->apiKeyV2 . ':' . $this->secretV2;
-            else
-                $authBasicString = $this->apiKeyV1 . ':' . $this->secretV1;
-        } else
-            $authBasicString = $this->apiKeyV2 . ':' . $this->secretV2;
+        $authBasicString = $version2 || !self::ENABLE_V1
+            ? $this->apiKeyV2 . ':' . $this->secretV2
+            : $this->apiKeyV1 . ':' . $this->secretV1;
 
         return 'Authorization: Basic ' . base64_encode($authBasicString);
     }
 
     protected function enterError($message): void
     {
-
         $insert = new \stdClass();
         $insert->officeID = $this->repository->getSession()->getOfficeID();
         $insert->consultantID = $this->repository->getSession()->getConsultantID();
@@ -311,8 +293,7 @@ abstract class Expedia
     /**
      * @return mixed
      */
-    public function getPassengerID()
-    {
+    public function getPassengerID() {
         return $this->passengerID;
     }
 
@@ -367,8 +348,7 @@ abstract class Expedia
     /**
      * @return mixed|string
      */
-    public function getProductID()
-    {
+    public function getProductID() {
         return $this->productID;
     }
 
@@ -383,8 +363,7 @@ abstract class Expedia
     /**
      * @return mixed
      */
-    public function getSupplierID()
-    {
+    public function getSupplierID() {
         return $this->supplierID;
     }
 
@@ -399,8 +378,7 @@ abstract class Expedia
     /**
      * @return mixed|string
      */
-    public function getTripID()
-    {
+    public function getTripID() {
         return $this->tripID;
     }
 
@@ -415,15 +393,13 @@ abstract class Expedia
     /**
      * @return mixed
      */
-    public function getData()
-    {
+    public function getData() {
         return $this->data;
     }
 
 
     // Helper Methods 
-    private function processAPIData($rowCount)
-    {
+    private function processAPIData($rowCount) {
         if ($rowCount == 1) {
             $apiInfo = $this->repository->getMaseterDBSingleRow();
             $this->apiKeyV2 = $apiInfo['key'];
@@ -433,14 +409,12 @@ abstract class Expedia
         }
     }
 
-    public function handleMissingConfig($configName)
-    {
+    public function handleMissingConfig($configName) {
         $this->hasError = true;
         $this->errors[] = "Missing Config - $configName";
     }
 
-    private function setEmails()
-    {
+    private function setEmails() {
         foreach ($this->repository->getMaseterDBResultSet() as $consultantRow) {
             $this->emailList[] = $consultantRow['extra1'];
         }

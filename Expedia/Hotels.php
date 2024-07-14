@@ -13,18 +13,16 @@ use Fenix\Core\Database;
 use Fenix\Core\Session;
 
 
- // Handles hotel booking imports from Expedia APIs, extending base functionality from Expedia class.
- // Manages API-specific URL, headers, and data processing for hotel rooms, including sector and itinerary generation.
+// Handles hotel booking imports from Expedia APIs, extending base functionality from Expedia class.
+// Manages API-specific URL, headers, and data processing for hotel rooms, including sector and itinerary generation.
 
-class Hotels extends Expedia
-{
+class Hotels extends Expedia {
     protected string $url = self::URL . 'hotels/bookings/';
     protected string $acceptString = 'Accept: application/vnd.exp-hotel.v3+json';
     private $sectorInsertTemplate;
 
 
-    public function __construct($config, Database $db, Database $db_master, Session $session)
-    {
+    public function __construct($config, Database $db, Database $db_master, Session $session) {
         //Injecting the repository for db calls 
         $this->repository = new ExpediaRepository($db, $db_master, $session);
         $this->sectorInsertTemplate = new SectorInsertTemplate();
@@ -35,8 +33,7 @@ class Hotels extends Expedia
      //
      // Generates sector and itinerary information for hotel rooms, 
      // handling database insertion based on booking and session currencies.
-    protected function generateSectorInformation(): void
-    {
+    protected function generateSectorInformation(): void {
         
         $clone = $this->data;
         unset($clone['HotelDetails']['Rooms']);
@@ -72,23 +69,20 @@ class Hotels extends Expedia
         }
     }
 
-    private function getLocalCurrencyCode(): string
-    {
+    private function getLocalCurrencyCode(): string {
         return isset($this->data['HotelDetails']['LocalCurrencyCode']) && !empty($this->data['HotelDetails']['LocalCurrencyCode'])
             ? $this->data['HotelDetails']['LocalCurrencyCode']
             : $this->repository->getSession()->getCurrencyCode();
     }
 
-    private function getAgencyCurrency(): string
-    {
+    private function getAgencyCurrency(): string {
         return isset($this->data['TotalPrice']['Currency']) && !empty($this->data['TotalPrice']['Currency'])
             ? $this->data['TotalPrice']['Currency']
             : $this->repository->getSession()->getCurrencyCode();
     }
 
     // Creates a sector insert object for a hotel room with trip details, dates, rates, and taxes.
-    private function createSectorInsert($room, string $hotelName, bool $GSTApplied, int $debugCount, string $bookingDate, string $today): \stdClass
-    {
+    private function createSectorInsert($room, string $hotelName, bool $GSTApplied, int $debugCount, string $bookingDate, string $today): \stdClass {
         $sectorInsert = $this->sectorInsertTemplate->createTemplate();
         
 
@@ -116,8 +110,7 @@ class Hotels extends Expedia
         return $sectorInsert;
     }
 
-    private function getRoomDetails($room, string $hotelName): string
-    {
+    private function getRoomDetails($room, string $hotelName): string {
         $details = $hotelName . PHP_EOL;
         if (!empty($room['Description'])) {
             $details .= $room['Description'];
@@ -125,14 +118,12 @@ class Hotels extends Expedia
         return $details;
     }
 
-    private function getFees($room): int
-    {
+    private function getFees($room): int {
         return isset($room['Price']['TaxesAndFees']['Value']) ? $room['Price']['TaxesAndFees']['Value'] * 100 : 0;
     }
 
     // Calculates and returns the base rate in cents for a hotel room, considering 'BaseRate' or 'TotalPrice' minus fees if available.
-    private function getBaseRate($room, int $fees): int
-    {
+    private function getBaseRate($room, int $fees): int {
         if (isset($room['Price']['BaseRate']['Value'])) {
             return $room['Price']['BaseRate']['Value'] * 100;
         } elseif (isset($room['Price']['TotalPrice']['Value'])) {
@@ -142,8 +133,7 @@ class Hotels extends Expedia
     }
 
     // Creates an itinerary insert object for a hotel room with trip details, dates, and policies.
-    private function createItineraryInsert($room, string $hotelName, int $tripSectorID, string $today): \stdClass
-    {
+    private function createItineraryInsert($room, string $hotelName, int $tripSectorID, string $today): \stdClass {
         $travelDate = current($room['StayDates'])['CheckInDate'];
         $returnDate = current($room['StayDates'])['CheckOutDate'];
         $itineraryInsert = new \stdClass();
@@ -174,13 +164,11 @@ class Hotels extends Expedia
 
     // Helper Methods to DRY up the code
 
-    private function getFormattedTime(?string $time): ?string
-    {
+    private function getFormattedTime(?string $time): ?string {
         return $time ? date("H:i:s", strtotime($time)) : null;
     }
 
-    private function getStartLocation(): string
-    {
+    private function getStartLocation(): string {
         $location = $this->data['HotelDetails']['Location']['Address'] ?? [];
         return trim(
             ($location['Address1'] ?? '') . ' ' .
@@ -190,8 +178,7 @@ class Hotels extends Expedia
         );
     }
 
-    private function getStartPhoneNumber(): string
-    {
+    private function getStartPhoneNumber(): string {
         $phone = current($this->data['HotelDetails']['PhoneInfos'] ?? []) ?? [];
         return trim(
             ($phone['CountryCode'] ?? '') . ' ' .
@@ -200,14 +187,12 @@ class Hotels extends Expedia
         );
     }
 
-    private function getInclusions(): string
-    {
+    private function getInclusions(): string {
         $amenities = $this->data['HotelDetails']['HotelAmenities'] ?? [];
         return implode('<br/>', array_column($amenities, 'Name'));
     }
 
-    private function getCancellationPolicy($room): ?string
-    {
+    private function getCancellationPolicy($room): ?string {
         $ratePlan = current($room['RatePlans'] ?? []);
         return $ratePlan['CancellationPolicy']['CancelPolicyDescription'] ?? null;
     }

@@ -1,12 +1,10 @@
 <?php
 
-
 namespace Fenix\Core\Import\ThirdParty;
 
 // this class helps to take out the long assignnment as it was only making original file long and most 
 // of the values are constants, even same in cars and hotels
-class SectorInsertTemplate
-{
+class SectorInsertTemplate {
     public function createTemplate(
         int $tripID = null,
         int $productID = null,
@@ -50,28 +48,28 @@ class SectorInsertTemplate
         $sectorInsert->consolidatorFees = 0;
 
         // Include dynamic values if provided
-        if ($tripID !== null) {
+        if (isset($tripID)) {
             $sectorInsert->tripID = $tripID;
         }
-        if ($productID !== null) {
+        if (isset($productID)) {
             $sectorInsert->productID = $productID;
         }
-        if ($supplierID !== null) {
+        if (isset($supplierID)) {
             $sectorInsert->supplierID = $supplierID;
         }
-        if ($consultantID !== null) {
+        if (isset($consultantID)) {
             $sectorInsert->consultantID = $consultantID;
         }
-        if ($pickupDateTime !== null) {
+        if (isset($pickupDateTime)) {
             $sectorInsert->travelDate = date('Y-m-d', strtotime($pickupDateTime));
         }
-        if ($dropOffDateTime !== null) {
+        if (isset($dropOffDateTime)) {
             $sectorInsert->returnDate = date('Y-m-d', strtotime($dropOffDateTime));
         }
-        if ($baseRate !== null) {
+        if (isset($baseRate)) {
             $sectorInsert->total = $baseRate;
         }
-        if ($itineraryNumber !== null) {
+        if (isset($itineraryNumber)) {
             $sectorInsert->referenceNumber = $itineraryNumber;
         }
 
